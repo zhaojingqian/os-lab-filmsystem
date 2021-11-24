@@ -36,7 +36,7 @@ options:
 |--src              SFS文件系统源文件
 |--tests            测试脚本，tests/mnt为测试挂载点
 |--CMakeLists.txt   -    
-|--Makefile         -
+|--Makefile         -source ~/.bashrc 
 |--ddriver_dump     ddriver -d后的磁盘布局，可用HexEditor查看
 |--README.md        SFS FUSE开发记录
 四. FUSE体验
