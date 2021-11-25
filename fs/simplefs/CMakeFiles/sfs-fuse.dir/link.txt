@@ -1,0 +1,1 @@
+/usr/bin/cc  -D_FILE_OFFSET_BITS=64 -no-pie  -rdynamic CMakeFiles/sfs-fuse.dir/src/sfs.c.o CMakeFiles/sfs-fuse.dir/src/sfs_debug.c.o CMakeFiles/sfs-fuse.dir/src/sfs_utils.c.o  -o sfs-fuse  -lfuse /home/guests/190110325/lib/libddriver.a 

@@ -1,5 +1,5 @@
 #include "newfs.h"
-
+#include "newfs_utils.c"
 /******************************************************************************
 * SECTION: 宏定义
 *******************************************************************************/
@@ -13,8 +13,7 @@ static const struct fuse_opt option_spec[] = {		/* 用于FUSE文件系统解析�
 	FUSE_OPT_END
 };
 
-struct custom_options newfs_options;			 /* 全局选项 */
-struct newfs_super super; 
+//  struct super 			super;
 /******************************************************************************
 * SECTION: FUSE操作定义
 *******************************************************************************/
@@ -48,10 +47,63 @@ static struct fuse_operations operations = {
  */
 void* newfs_init(struct fuse_conn_info * conn_info) {
 	/* TODO: 在这里进行挂载 */
+	int inode_num;
+	int data_num;
+	int super_blks;
+	int map_inode_blks;
+	int map_data_blks;
+	int inode_blks;
+
+	struct super_d super_d;
+	struct dentry*	root_dentry;
 
 	/* 下面是一个控制设备的示例 */
 	super.fd = ddriver_open(newfs_options.device);
+	if(super.fd < 0) {
+		return super.fd;
+	}
+
+	root_dentry = new_dentry("/", DIR);
+	if(newfs_driver_read(SUPER_OFS, (uint8_t *)(&super_d), sizeof(struct super_d))!=0)
+		return -1;
 	
+	if(super_d.magic_num != MAGIC) {
+		super_blks = ROUND_UP(sizeof(struct super_d), BLOCK_SZ()) / BLOCK_SZ();
+
+		data_num 	= DISK_SZ() / BLOCK_SZ();
+		map_data_blks  = ROUND_UP(ROUND_UP(data_num, UINT8_BITS), BLOCK_SZ()) / BLOCK_SZ();
+
+		inode_num = ROUND_UP(data_num, MAX_BLOCK) / MAX_BLOCK;
+		inode_blks = ROUND_UP(inode_num * sizeof(struct inode_d), BLOCK_SZ()) / BLOCK_SZ();
+		map_inode_blks = ROUND_UP(ROUND_UP(inode_num, UINT8_BITS), BLOCK_SZ()) / BLOCK_SZ();
+	
+		super_d.map_data_blks = map_data_blks;
+		super_d.map_inode_blks = map_inode_blks;
+		super_d.inode_blks = inode_blks;
+
+		super_d.map_inode_offset = SUPER_OFS + BLKS_SZ(super_blks);
+		super_d.map_data_offset = super_d.map_inode_offset + BLKS_SZ(map_inode_blks);
+		super_d.inode_offset = super_d.map_data_offset + BLKS_SZ(map_data_blks);
+		super_d.data_offset = super_d.inode_offset + BLKS_SZ(inode_blks);
+	}
+	super.max_ino = inode_num;
+	super.map_inode = (uint8_t *)malloc(BLKS_SZ(super_d.map_inode_blks));
+	super.map_data = (uint8_t *)malloc(BLKS_SZ(super_d.map_data_blks));
+
+	super.map_inode_blks = super_d.map_inode_blks;
+	super.map_data_blks = super_d.map_data_blks;
+	super.map_inode_offset = super_d.map_inode_offset;
+	super.map_data_offset = super_d.map_data_offset;
+	super.data_offset = super_d.data_offset;
+	super.inode_blks = super_d.inode_blks;
+	super.inode_offset= super_d.inode_offset;
+
+	// super.map_data_blks = super_d.map_data_blks;
+	if(!newfs_driver_read(super_d.map_inode_offset, (uint8_t *)(super.map_inode), BLKS_SZ(super_d.map_inode_blks)))
+		return -1;
+	if(!newfs_driver_read(super_d.map_data_offset, (uint8_t *)(super.map_data), BLKS_SZ(super_d.map_data_blks)))
+		return -1;
+
 	return NULL;
 }
 
@@ -63,7 +115,29 @@ void* newfs_init(struct fuse_conn_info * conn_info) {
  */
 void newfs_destroy(void* p) {
 	/* TODO: 在这里进行卸载 */
-	
+	struct super_d super_d;
+
+	super_d.magic_num = MAGIC;
+	super_d.max_ino = super.max_ino;
+	super_d.map_inode_blks = super.map_inode_blks;
+	super_d.map_data_blks = super.map_data_blks;
+	super_d.map_inode_offset = super.map_inode_offset;
+	super_d.map_data_offset = super.map_data_offset;
+	super_d.data_offset = super.data_offset;
+	super_d.inode_blks = super.inode_blks;
+	super_d.inode_offset= super.inode_offset;
+
+	if(!newfs_driver_write(SUPER_OFS, (uint8_t *)&super_d, sizeof(struct super_d)))
+		return -1;
+	if(!newfs_driver_write(super_d.map_inode_offset, (uint8_t *)super.map_inode, BLKS_SZ(super_d.map_inode_blks)))
+		return -1;
+	if(!newfs_driver_write(super_d.map_data_offset, (uint8_t *)super.map_data, BLKS_SZ(super_d.map_data_blks)))
+		return -1;
+	// if(!newfs_driver_write(super_d.inode_offset, (uint8_t *)super.map_data, BLKS_SZ(super_d.map_data_blks)))
+	// 	return -1;
+	free(super.map_inode);
+	free(super.map_data);
+
 	ddriver_close(super.fd);
 
 	return;
@@ -278,7 +352,7 @@ int main(int argc, char **argv)
     int ret;
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
 
-	newfs_options.device = strdup("TODO: 这里填写你的ddriver设备路径");
+	newfs_options.device = strdup("/home/guests/190110325/ddriver");
 
 	if (fuse_opt_parse(&args, &newfs_options, option_spec, NULL) == -1)
 		return -1;

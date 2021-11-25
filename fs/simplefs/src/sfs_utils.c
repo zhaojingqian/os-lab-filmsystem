@@ -529,6 +529,7 @@ int sfs_mount(struct custom_options options){
         map_inode_blks = SFS_ROUND_UP(SFS_ROUND_UP(inode_num, UINT32_BITS), SFS_IO_SZ()) 
                          / SFS_IO_SZ();
         
+        // printf("super_blks=%d, inode_num=%d, map_inode_blks=%d\n", super_blks, inode_num, map_inode_blks);
                                                       /* 布局layout */
         sfs_super.max_ino = (inode_num - super_blks - map_inode_blks); 
         sfs_super_d.map_inode_offset = SFS_SUPER_OFS + SFS_BLKS_SZ(super_blks);

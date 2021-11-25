@@ -10,7 +10,7 @@ int main(int argc, char const *argv[])
         return -1;
     }
     /* Cycle 1: read/write test */
-    char buffer[512]={'a'};
+    char buffer[512]={'a','b','c'};
     char rbuffer[512];
     buffer[511] = '\0';
     if (fd < 0){

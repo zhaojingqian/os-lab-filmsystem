@@ -13,9 +13,8 @@
 #include "errno.h"
 #include "types.h"
 
-#define NEWFS_MAGIC                  /* TODO: Define by yourself */
-#define NEWFS_DEFAULT_PERM    0777   /* 全权限打开 */
-
+struct custom_options 	newfs_options;
+struct super 			super;
 /******************************************************************************
 * SECTION: newfs.c
 *******************************************************************************/
