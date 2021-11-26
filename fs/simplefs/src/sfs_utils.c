@@ -183,7 +183,7 @@ struct sfs_inode* sfs_alloc_inode(struct sfs_dentry * dentry) {
                                                       /* inode指回dentry */
     inode->dentry = dentry;
     
-    inode->dir_cnt = 0;
+    inode->dir_cnt = 0; 
     inode->dentrys = NULL;
     
     if (SFS_IS_REG(inode)) {

@@ -38,5 +38,18 @@ int   			   newfs_truncate(const char *, off_t);
 			
 int   			   newfs_open(const char *, struct fuse_file_info *);
 int   			   newfs_opendir(const char *, struct fuse_file_info *);
+/******************************************************************************
+* SECTION: newfs_utils.c
+*******************************************************************************/
+int				   newfs_driver_read(int offset, uint8_t *out_content, int size);
+int 			   newfs_driver_write(int offset, uint8_t *in_content, int size);
+int 			   newfs_alloc_dentry(struct inode * inode, struct dentry * dentry);
+struct inode*  	   newfs_alloc_inode(struct dentry * dentry);
+int 			   newfs_sync_inode(struct inode * inode);
+struct inode*  	   newfs_read_inode(struct dentry * dentry, int ino);
+struct dentry*	   newfs_lookup(const char *path, int *is_find, int *is_root);
+int 			   newfs_calc_lvl(const char *path);
+char* 			   newfs_get_fname(const char* path);
+// char* 			   mystrrchr(const char* string, char ch);
 
 #endif  /* _newfs_H_ */

@@ -17,6 +17,13 @@
 /****************************************************************/
 
 /****************************************************************/
+typedef enum file_type {
+    FIL,           // 普通文件
+    DIR             // 目录文件
+} FILE_TYPE;
+/****************************************************************/
+
+/****************************************************************/
 #define IO_SZ()           512
 #define DISK_SZ()         4*1024*1024
 #define DRIVER()          (super.fd)
@@ -28,15 +35,12 @@
 #define BLKS_SZ(blks)             (blks * BLOCK_SZ())
 #define ASSIGN_FNAME(psfs_dentry, _fname)\
         memcpy(psfs_dentry->fname, _fname, strlen(_fname))
-#define INO_OFS(ino)              (super.data_offset + ino * BLK_SZ(INODE_PER_FILE + DATA_PER_FILE))
+// #define INO_OFS(ino)              (super.data_offset + ino * BLK_SZ(INODE_PER_FILE + DATA_PER_FILE))
+#define INO_OFS(ino)              (super.inode_offset + ino * sizeof(struct inode))
+#define DATA_OFS(data)            (super.data_offset + data * BLOCK_SZ())
 
-/****************************************************************/
-
-/****************************************************************/
-typedef enum file_type {
-    FILE,           // 普通文件
-    DIR             // 目录文件
-} FILE_TYPE;
+#define IS_DIR(pinode)            (pinode->dentry->ftype == DIR)
+#define IS_FILE(pinode)            (pinode->dentry->ftype == FIL)
 /****************************************************************/
 
 /****************************************************************/
@@ -107,10 +111,13 @@ struct inode_d {
 };
 
 struct dentry {
-    char        fname[MAX_NAME_LEN];
-    uint32_t    ino;
-    FILE_TYPE   ftype;
-    int         valid;
+    char            fname[MAX_NAME_LEN];
+    struct dentry*  parent;
+    struct dentry*  brother;
+    uint32_t        ino;
+    FILE_TYPE       ftype;
+    // int             valid;
+    struct inode*   inode;
 };
 
 struct dentry_d {
@@ -118,7 +125,7 @@ struct dentry_d {
     uint32_t    ino;
 
     FILE_TYPE   ftype;
-    int         valid;
+    // int         valid;
     /* TODO: Define yourself */
 };
 
@@ -128,8 +135,10 @@ static inline struct dentry* new_dentry(char * fname, FILE_TYPE ftype) {
     ASSIGN_FNAME(dentry, fname);
     dentry->ftype   = ftype;
     dentry->ino     = -1;
-    dentry->valid   = 0;
+    // dentry->valid   = 0;
+    dentry->inode   = NULL;
+    dentry->parent  = NULL;
+    dentry->brother = NULL;  
 }
 /****************************************************************/
-
 #endif /* _TYPES_H_ */

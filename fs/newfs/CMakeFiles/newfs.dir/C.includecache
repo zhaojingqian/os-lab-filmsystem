@@ -6,6 +6,16 @@
 
 #IncludeRegexTransform: 
 
+/home/guests/190110325/user-land-filesystem/fs/newfs/include/ddriver.h
+ddriver_ctl_user.h
+/home/guests/190110325/user-land-filesystem/fs/newfs/include/ddriver_ctl_user.h
+stdio.h
+/home/guests/190110325/user-land-filesystem/fs/newfs/include/stdio.h
+
+/home/guests/190110325/user-land-filesystem/fs/newfs/include/ddriver_ctl_user.h
+sys/ioctl.h
+-
+
 /home/guests/190110325/user-land-filesystem/fs/newfs/include/newfs.h
 stdio.h
 /home/guests/190110325/user-land-filesystem/fs/newfs/include/stdio.h
@@ -28,47 +38,9 @@ errno.h
 types.h
 /home/guests/190110325/user-land-filesystem/fs/newfs/include/types.h
 
-/home/guests/190110325/user-land-filesystem/fs/newfs/src/newfs.c
-newfs.h
-/home/guests/190110325/user-land-filesystem/fs/newfs/src/newfs.h
-newfs_utils.c
-/home/guests/190110325/user-land-filesystem/fs/newfs/src/newfs_utils.c
+/home/guests/190110325/user-land-filesystem/fs/newfs/include/types.h
 
 /home/guests/190110325/user-land-filesystem/fs/newfs/src/newfs_utils.c
 ../include/newfs.h
 /home/guests/190110325/user-land-filesystem/fs/newfs/include/newfs.h
-
-include/ddriver.h
-ddriver_ctl_user.h
-include/ddriver_ctl_user.h
-stdio.h
-include/stdio.h
-
-include/ddriver_ctl_user.h
-sys/ioctl.h
--
-
-include/newfs.h
-stdio.h
-include/stdio.h
-stdlib.h
-include/stdlib.h
-unistd.h
--
-fcntl.h
-include/fcntl.h
-string.h
-include/string.h
-fuse.h
-include/fuse.h
-stddef.h
--
-ddriver.h
-include/ddriver.h
-errno.h
-include/errno.h
-types.h
-include/types.h
-
-include/types.h
 

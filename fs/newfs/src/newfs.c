@@ -1,5 +1,5 @@
-#include "newfs.h"
-#include "newfs_utils.c"
+#include "../include/newfs.h"
+// #include "newfs_utils.c"
 /******************************************************************************
 * SECTION: 宏定义
 *******************************************************************************/
@@ -53,9 +53,11 @@ void* newfs_init(struct fuse_conn_info * conn_info) {
 	int map_inode_blks;
 	int map_data_blks;
 	int inode_blks;
+	int is_init = 0;
 
 	struct super_d super_d;
 	struct dentry*	root_dentry;
+	struct inode*   root_inode;
 
 	/* 下面是一个控制设备的示例 */
 	super.fd = ddriver_open(newfs_options.device);
@@ -63,10 +65,12 @@ void* newfs_init(struct fuse_conn_info * conn_info) {
 		return super.fd;
 	}
 
-	root_dentry = new_dentry("/", DIR);
+	//* 读取磁盘超级块数据信息
 	if(newfs_driver_read(SUPER_OFS, (uint8_t *)(&super_d), sizeof(struct super_d))!=0)
-		return -1;
+		return -EIO;
 	
+	//* 未格式化
+	//* 进行位图和节点的估计和分配
 	if(super_d.magic_num != MAGIC) {
 		super_blks = ROUND_UP(sizeof(struct super_d), BLOCK_SZ()) / BLOCK_SZ();
 
@@ -77,6 +81,7 @@ void* newfs_init(struct fuse_conn_info * conn_info) {
 		inode_blks = ROUND_UP(inode_num * sizeof(struct inode_d), BLOCK_SZ()) / BLOCK_SZ();
 		map_inode_blks = ROUND_UP(ROUND_UP(inode_num, UINT8_BITS), BLOCK_SZ()) / BLOCK_SZ();
 	
+		super_d.max_ino = inode_num;
 		super_d.map_data_blks = map_data_blks;
 		super_d.map_inode_blks = map_inode_blks;
 		super_d.inode_blks = inode_blks;
@@ -85,8 +90,13 @@ void* newfs_init(struct fuse_conn_info * conn_info) {
 		super_d.map_data_offset = super_d.map_inode_offset + BLKS_SZ(map_inode_blks);
 		super_d.inode_offset = super_d.map_data_offset + BLKS_SZ(map_data_blks);
 		super_d.data_offset = super_d.inode_offset + BLKS_SZ(inode_blks);
+
+		is_init = 1;
 	}
-	super.max_ino = inode_num;
+
+
+	//* 数据赋值给全局超级块结构体， 方便调用
+	super.max_ino = super_d.max_ino;
 	super.map_inode = (uint8_t *)malloc(BLKS_SZ(super_d.map_inode_blks));
 	super.map_data = (uint8_t *)malloc(BLKS_SZ(super_d.map_data_blks));
 
@@ -98,11 +108,24 @@ void* newfs_init(struct fuse_conn_info * conn_info) {
 	super.inode_blks = super_d.inode_blks;
 	super.inode_offset= super_d.inode_offset;
 
-	// super.map_data_blks = super_d.map_data_blks;
-	if(!newfs_driver_read(super_d.map_inode_offset, (uint8_t *)(super.map_inode), BLKS_SZ(super_d.map_inode_blks)))
-		return -1;
-	if(!newfs_driver_read(super_d.map_data_offset, (uint8_t *)(super.map_data), BLKS_SZ(super_d.map_data_blks)))
-		return -1;
+
+	//* 这里是全局超级块两个位图的赋值， 方便调用
+	if(newfs_driver_read(super_d.map_inode_offset, (uint8_t *)(super.map_inode), BLKS_SZ(super_d.map_inode_blks)))
+		return -EIO;
+	if(newfs_driver_read(super_d.map_data_offset, (uint8_t *)(super.map_data), BLKS_SZ(super_d.map_data_blks)))
+		return -EIO;
+
+	//* 根目录的创建
+	root_dentry = new_dentry("/", DIR);
+	if(is_init) {
+		root_inode = newfs_alloc_inode(root_dentry);
+		newfs_sync_inode(root_inode);
+	}
+	
+
+	root_inode = newfs_read_inode(root_dentry, ROOT_INO);
+	root_dentry->inode = root_inode;
+	super.root_dentry = root_dentry;
 
 	return NULL;
 }
@@ -117,6 +140,10 @@ void newfs_destroy(void* p) {
 	/* TODO: 在这里进行卸载 */
 	struct super_d super_d;
 
+	//* 刷写inode和dentry
+	newfs_sync_inode(super.root_dentry->inode);
+
+	//* 磁盘超级块的更新回写
 	super_d.magic_num = MAGIC;
 	super_d.max_ino = super.max_ino;
 	super_d.map_inode_blks = super.map_inode_blks;
@@ -127,14 +154,16 @@ void newfs_destroy(void* p) {
 	super_d.inode_blks = super.inode_blks;
 	super_d.inode_offset= super.inode_offset;
 
-	if(!newfs_driver_write(SUPER_OFS, (uint8_t *)&super_d, sizeof(struct super_d)))
-		return -1;
-	if(!newfs_driver_write(super_d.map_inode_offset, (uint8_t *)super.map_inode, BLKS_SZ(super_d.map_inode_blks)))
-		return -1;
-	if(!newfs_driver_write(super_d.map_data_offset, (uint8_t *)super.map_data, BLKS_SZ(super_d.map_data_blks)))
-		return -1;
-	// if(!newfs_driver_write(super_d.inode_offset, (uint8_t *)super.map_data, BLKS_SZ(super_d.map_data_blks)))
-	// 	return -1;
+	if(newfs_driver_write(SUPER_OFS, (uint8_t *)&super_d, sizeof(struct super_d)))
+		return -EIO;
+	//* 索引位图的回写
+	if(newfs_driver_write(super_d.map_inode_offset, (uint8_t *)super.map_inode, BLKS_SZ(super_d.map_inode_blks)))
+		return -EIO;
+	//* 数据位图的回写
+	if(newfs_driver_write(super_d.map_data_offset, (uint8_t *)super.map_data, BLKS_SZ(super_d.map_data_blks)))
+		return -EIO;
+
+	//* 资源释放
 	free(super.map_inode);
 	free(super.map_data);
 
@@ -152,6 +181,26 @@ void newfs_destroy(void* p) {
  */
 int newfs_mkdir(const char* path, mode_t mode) {
 	/* TODO: 解析路径，创建目录 */
+	int is_find, is_root;
+	char *fname;
+	struct dentry* last_dentry = newfs_lookup(path, &is_find, &is_root);
+	struct dentry* dentry;
+	struct inode*  inode;
+	if(is_find) {
+		perror("already exists\n");
+		return -EEXIST;
+	}
+	if(IS_FILE(last_dentry->inode)) {
+		perror("not a dir");
+		return -ENXIO;
+	}
+
+	fname = newfs_get_fname(path);
+	dentry = new_dentry(fname, DIR);
+	dentry->parent = last_dentry;
+	inode = newfs_alloc_inode(dentry);
+	newfs_alloc_dentry(last_dentry->inode, dentry);
+
 	return 0;
 }
 
@@ -164,6 +213,33 @@ int newfs_mkdir(const char* path, mode_t mode) {
  */
 int newfs_getattr(const char* path, struct stat * newfs_stat) {
 	/* TODO: 解析路径，获取Inode，填充newfs_stat，可参考/fs/simplefs/sfs.c的sfs_getattr()函数实现 */
+	int is_find, is_root;
+	struct dentry* dentry = newfs_lookup(path, &is_find, &is_root);
+	if(is_find == 0) {
+		// perror("not found\n");
+		return -ENOENT;
+	}
+	if(IS_DIR(dentry->inode)) {
+		newfs_stat->st_mode = S_IFDIR | DEFAULT_PERM;
+		newfs_stat->st_size = dentry->inode->dir_cnt * sizeof(struct dentry_d);
+	}
+	else if(IS_FILE(dentry->inode)) {
+		newfs_stat->st_mode = S_IFDIR | DEFAULT_PERM;
+		newfs_stat->st_size = dentry->inode->size;
+	}
+	newfs_stat->st_nlink = 1;
+	newfs_stat->st_uid 	 = getuid();
+	newfs_stat->st_gid 	 = getgid();
+	newfs_stat->st_atime   = time(NULL);
+	newfs_stat->st_mtime   = time(NULL);
+	//! 不知道赋值的对错
+	newfs_stat->st_blksize = BLOCK_SZ();
+
+	if(is_root) {
+		newfs_stat->st_size = 0;
+		newfs_stat->st_blocks = DISK_SZ() / BLOCK_SZ();
+		newfs_stat->st_nlink  = 2;
+	}
 	return 0;
 }
 
