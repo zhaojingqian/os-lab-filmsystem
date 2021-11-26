@@ -50,6 +50,7 @@ struct inode*  	   newfs_read_inode(struct dentry * dentry, int ino);
 struct dentry*	   newfs_lookup(const char *path, int *is_find, int *is_root);
 int 			   newfs_calc_lvl(const char *path);
 char* 			   newfs_get_fname(const char* path);
+struct dentry*	   newfs_get_dentry(struct inode* inode, int cur_dir);
 // char* 			   mystrrchr(const char* string, char ch);
 
 #endif  /* _newfs_H_ */

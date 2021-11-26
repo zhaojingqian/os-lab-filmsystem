@@ -71,10 +71,11 @@ struct inode* newfs_alloc_inode(struct dentry *dentry) {
     inode->dentry = dentry;
     inode->dir_cnt = 0;
     inode->dentrys = NULL;
-    memset(inode->block_pointer, -1, sizeof(inode->block_pointer));
+    // memset(inode->block_pointer, -1, sizeof(inode->block_pointer));
+    inode->block_pointer[0] = -1;
     
     // if(IS_FILE(inode)) {
-        //* 分配一块数据块
+    //* 分配一块数据块
     for(byte_cursor = 0; byte_cursor < BLKS_SZ(super.map_data_blks); byte_cursor++) {
         for(bit_cursor = 0; bit_cursor < UINT8_BITS; bit_cursor++) {
             if((super.map_data[byte_cursor] & (0x1 << bit_cursor)) == 0) {
@@ -111,7 +112,7 @@ struct inode *newfs_read_inode(struct dentry *dentry, int ino) {
         printf("**read inode_d error\n");
         return NULL;
     }
-    // *赋值给内存inode
+    //* 赋值给内存inode
     inode->dir_cnt = 0;
     inode->ino = inode_d.ino;
     inode->size = inode_d.size;
@@ -132,9 +133,10 @@ struct inode *newfs_read_inode(struct dentry *dentry, int ino) {
             newfs_alloc_dentry(inode, sub_dentry);
 
         }
-    } else if (IS_FILE(inode)) {
+    } 
+    // else if (IS_FILE(inode)) {
         inode->block_pointer[0] = inode_d.block_pointer[0];
-    }
+    // }
     return inode;
 }
 
@@ -158,6 +160,9 @@ int newfs_sync_inode(struct inode *inode) {
     inode_d.size = inode->size;
     inode_d.ftype = inode->dentry->ftype;
     inode_d.dir_cnt = inode->dir_cnt;
+    // memset(inode_d.block_pointer, 0, sizeof(inode->block_pointer));
+    // inode_d.block_pointer[0] = inode->block_pointer[0];
+    memcpy(inode_d.block_pointer, inode->block_pointer, sizeof(inode_d.block_pointer));
     int offset;
 
     if(newfs_driver_write(INO_OFS(ino), (uint8_t *)&inode_d, sizeof(struct inode_d))) {
@@ -277,6 +282,18 @@ char* newfs_get_fname(const char* path) {
     return q;
 }
 
+struct dentry* newfs_get_dentry(struct inode* inode, int cur_dir) {
+    struct dentry *dentry_cursor = inode->dentrys;
+    int cnt = 0;
+    while(dentry_cursor) {
+        if(cur_dir == cnt) {
+            return dentry_cursor;
+        }
+        cnt++;
+        dentry_cursor = dentry_cursor->brother;
+    }
+    return NULL;
+}
 // char* mystrrchr(const char* string, char ch) {
 //     char *p = string;
 //     while(p+1 != '\n') ++p;
