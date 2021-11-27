@@ -44,11 +44,3 @@ types.h
 ../include/sfs.h
 /home/guests/190110325/user-land-filesystem/fs/simplefs/include/sfs.h
 
-/home/guests/190110325/user-land-filesystem/fs/simplefs/src/sfs_debug.c
-../include/sfs.h
-/home/guests/190110325/user-land-filesystem/fs/simplefs/include/sfs.h
-
-/home/guests/190110325/user-land-filesystem/fs/simplefs/src/sfs_utils.c
-../include/sfs.h
-/home/guests/190110325/user-land-filesystem/fs/simplefs/include/sfs.h
-

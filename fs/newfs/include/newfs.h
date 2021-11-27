@@ -51,6 +51,8 @@ struct dentry*	   newfs_lookup(const char *path, int *is_find, int *is_root);
 int 			   newfs_calc_lvl(const char *path);
 char* 			   newfs_get_fname(const char* path);
 struct dentry*	   newfs_get_dentry(struct inode* inode, int cur_dir);
+int newfs_drop_dentry(struct inode *inode, struct dentry *dentry);
+int newfs_drop_inode(struct inode *inode);
 // char* 			   mystrrchr(const char* string, char ch);
 
 #endif  /* _newfs_H_ */

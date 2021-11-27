@@ -22,7 +22,9 @@ typedef enum file_type {
     DIR             // 目录文件
 } FILE_TYPE;
 /****************************************************************/
-
+struct dentry;
+struct inode;
+struct super;
 /****************************************************************/
 #define IO_SZ()           512
 #define DISK_SZ()         4*1024*1024

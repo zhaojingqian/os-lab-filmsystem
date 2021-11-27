@@ -300,3 +300,82 @@ struct dentry* newfs_get_dentry(struct inode* inode, int cur_dir) {
 //     while(p[0] != ch) --p;
 //     return p;
 // }
+int newfs_drop_inode(struct inode *inode) {
+    struct dentry *dentry_cursor;
+    struct dentry *dentry_to_free;
+    struct inode*   inode_cursor;
+
+    int byte_cursor = 0; 
+    int bit_cursor  = 0; 
+    int ino_cursor  = 0;
+    int data_cursor = 0;
+    int is_find = 0;
+
+    if(inode == super.root_dentry->inode) {
+        return EINVAL;
+    }
+
+    if(IS_DIR(inode)) {
+        dentry_cursor = inode->dentrys;
+        while(dentry_cursor) {
+            inode_cursor = dentry_cursor->inode;
+            newfs_drop_inode(inode_cursor);
+            newfs_drop_dentry(inode, dentry_cursor);
+            dentry_to_free = dentry_cursor;
+            dentry_cursor = dentry_cursor->brother;
+            free(dentry_to_free);
+        }
+    } else if(IS_FILE(inode)) {
+        //* 调整索引位图
+        for(byte_cursor=0; byte_cursor<BLKS_SZ(super.map_inode_blks); byte_cursor++) {
+            for(bit_cursor=0; bit_cursor<UINT8_BITS; bit_cursor++) {
+                if(ino_cursor == inode->ino) {
+                    super.map_inode[bit_cursor] &= (uint8_t)(~(0x1 << bit_cursor));
+                    is_find = 1;
+                    break;
+                }
+                ino_cursor++;
+            }
+            if(is_find) break;
+        }
+        is_find = 0;
+        //* 调整数据位图
+        for(byte_cursor=0; byte_cursor<BLKS_SZ(super.map_data_blks); byte_cursor++) {
+            for(bit_cursor=0; bit_cursor<UINT8_BITS; bit_cursor++) {
+                if(ino_cursor == inode->ino) {
+                    super.map_data[bit_cursor] &= (uint8_t)(~(0x1 << bit_cursor));
+                    is_find = 1;
+                    break;
+                }
+                data_cursor++;
+            }
+            if(is_find) break;
+        }
+        free(inode);
+    }
+    return 0;
+}
+
+int newfs_drop_dentry(struct inode *inode, struct dentry *dentry) {
+    int is_find = 0;
+    struct dentry *dentry_cursor;
+    dentry_cursor = inode->dentrys;
+    if(dentry_cursor == dentry) {
+        inode->dentrys = dentry->brother;
+        is_find = 1;
+    } else {
+        while(dentry_cursor) {
+            if(dentry_cursor->brother == dentry) {
+                dentry_cursor->brother = dentry->brother;
+                is_find = 1;
+                break;
+            }
+            dentry_cursor = dentry_cursor->brother;
+        }
+    }
+    if(!is_find) {
+        return -ENOENT;
+    }
+    inode->dir_cnt--;
+    return inode->dir_cnt;
+}
