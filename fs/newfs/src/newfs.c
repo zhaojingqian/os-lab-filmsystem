@@ -291,6 +291,22 @@ int newfs_readdir(const char * path, void * buf, fuse_fill_dir_t filler, off_t o
  */
 int newfs_mknod(const char* path, mode_t mode, dev_t dev) {
 	/* TODO: 解析路径，并创建相应的文件 */
+	int is_find, is_root;
+	struct dentry *last_dentry = newfs_lookup(path, &is_find, &is_root);
+	struct dentry *dentry;
+	struct inode *inode;
+	char *fname;
+
+	if(is_find == 1) {
+		return -EEXIST;
+	}
+	fname = newfs_get_fname(path);
+	dentry = new_dentry(fname, FIL);
+
+	dentry->parent = last_dentry;
+	inode = newfs_alloc_inode(dentry);
+	newfs_alloc_dentry(last_dentry->inode, dentry);
+	
 	return 0;
 }
 

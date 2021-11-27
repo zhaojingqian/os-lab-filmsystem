@@ -44,7 +44,3 @@ types.h
 ../include/newfs.h
 /home/guests/190110325/user-land-filesystem/fs/newfs/include/newfs.h
 
-/home/guests/190110325/user-land-filesystem/fs/newfs/src/newfs_utils.c
-../include/newfs.h
-/home/guests/190110325/user-land-filesystem/fs/newfs/include/newfs.h
-
