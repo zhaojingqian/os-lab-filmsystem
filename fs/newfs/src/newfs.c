@@ -140,7 +140,7 @@ void newfs_destroy(void* p) {
 	/* TODO: 在这里进行卸载 */
 	struct super_d super_d;
 
-	//* 刷写inode和dentry
+	//* 刷写inode和dentry(索引节点回写)
 	newfs_sync_inode(super.root_dentry->inode);
 
 	//* 磁盘超级块的更新回写

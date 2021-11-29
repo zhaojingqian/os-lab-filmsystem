@@ -161,8 +161,8 @@ int newfs_sync_inode(struct inode *inode) {
     inode_d.ftype = inode->dentry->ftype;
     inode_d.dir_cnt = inode->dir_cnt;
     // memset(inode_d.block_pointer, 0, sizeof(inode->block_pointer));
-    // inode_d.block_pointer[0] = inode->block_pointer[0];
-    memcpy(inode_d.block_pointer, inode->block_pointer, sizeof(inode_d.block_pointer));
+    inode_d.block_pointer[0] = inode->block_pointer[0];
+    // memcpy(inode_d.block_pointer, inode->block_pointer, sizeof(inode_d.block_pointer));
     int offset;
 
     if(newfs_driver_write(INO_OFS(ino), (uint8_t *)&inode_d, sizeof(struct inode_d))) {
