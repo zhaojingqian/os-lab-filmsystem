@@ -325,12 +325,13 @@ int newfs_drop_inode(struct inode *inode) {
             dentry_cursor = dentry_cursor->brother;
             free(dentry_to_free);
         }
-    } else if(IS_FILE(inode)) {
+    }
+    // } else if(IS_FILE(inode)) {
         //* 调整索引位图
         for(byte_cursor=0; byte_cursor<BLKS_SZ(super.map_inode_blks); byte_cursor++) {
             for(bit_cursor=0; bit_cursor<UINT8_BITS; bit_cursor++) {
                 if(ino_cursor == inode->ino) {
-                    super.map_inode[bit_cursor] &= (uint8_t)(~(0x1 << bit_cursor));
+                    super.map_inode[byte_cursor] &= (uint8_t)(~(0x1 << bit_cursor));
                     is_find = 1;
                     break;
                 }
@@ -342,8 +343,8 @@ int newfs_drop_inode(struct inode *inode) {
         //* 调整数据位图
         for(byte_cursor=0; byte_cursor<BLKS_SZ(super.map_data_blks); byte_cursor++) {
             for(bit_cursor=0; bit_cursor<UINT8_BITS; bit_cursor++) {
-                if(ino_cursor == inode->ino) {
-                    super.map_data[bit_cursor] &= (uint8_t)(~(0x1 << bit_cursor));
+                if(data_cursor == inode->ino) {
+                    super.map_data[byte_cursor] &= (uint8_t)(~(0x1 << bit_cursor));
                     is_find = 1;
                     break;
                 }
@@ -352,7 +353,6 @@ int newfs_drop_inode(struct inode *inode) {
             if(is_find) break;
         }
         free(inode);
-    }
     return 0;
 }
 
