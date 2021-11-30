@@ -94,6 +94,8 @@ void* newfs_init(struct fuse_conn_info * conn_info) {
 		is_init = 1;
 	}
 
+	// printf("the size of inode_d is %d\n", sizeof(struct inode_d));
+
 
 	//* 数据赋值给全局超级块结构体， 方便调用
 	super.max_ino = super_d.max_ino;
